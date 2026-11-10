@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>С Днём Рождения! 🎂</title>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: url('https://images.meme-arsenal.com/adcb53471843c6dfd24bd9709414bb19.jpg') center/cover no-repeat fixed;
+    overflow: hidden;
+    color: #fff;
+    user-select: none;
+  }
+
+  /* Счётчик */
+  #counter {
+    position: fixed;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: 700;
+    padding: 10px 24px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    border-radius: 40px;
+    border: 1px solid rgba(255,255,255,0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    z-index: 10;
+    transition: transform .15s;
+  }
+  #counter.pop { transform: translateX(-50%) scale(1.15); }
+
+  /* Подсказка */
+  #hint {
+    position: fixed;
+    top: 80px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    opacity: .85;
+    text-align: center;
+    width: 90%;
+    z-index: 10;
+    transition: opacity .3s;
+  }
+
+  /* Тортик-кнопка */
+  #cake {
+    position: fixed;
+    top: 55%; left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    font-size: 90px;
+    cursor: pointer;
+    filter: drop-shadow(0 10px 25px rgba(0,0,0,0.45));
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), filter .2s;
+    z-index: 5;
+    line-height: 1;
+  }
+  #cake:hover { filter: drop-shadow(0 10px 35px rgba(255,200,80,0.8)); }
+  #cake.frozen { transition: none; }
+  #cake.grow { transform: translate(-50%, -50%) scale(1.25); }
+  #cake.shake { animation: shake .3s; }
+  @keyframes shake {
+    0%,100% { transform: translate(-50%,-50%) rotate(0); }
+    25% { transform: translate(-50%,-50%) rotate(-12deg); }
+    75% { transform: translate(-50%,-50%) rotate(12deg); }
+  }
+  #cake.explode {
+    animation: explode .6s forwards;
+  }
+  @keyframes explode {
+    0% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    60% { transform: translate(-50%,-50%) scale(2.5); opacity: .7; filter: blur(4px); }
+    100% { transform: translate(-50%,-50%) scale(4); opacity: 0; filter: blur(10px); }
+  }
+
+  /* Всплывающая плашка вопроса */
+  #askBox {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%) scale(0);
+    background: rgba(255,255,255,0.98);
+    color: #2b1055;
+    padding: 30px 36px;
+    border-radius: 24px;
+    text-align: center;
+    z-index: 20;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    width: 90%;
+    max-width: 380px;
+  }
+  #askBox.show { transform: translate(-50%,-50%) scale(1); }
+  #askBox h2 { font-size: 22px; margin-bottom: 18px; }
+  #askBox input {
+    width: 100%;
+    font-size: 28px;
+    text-align: center;
+    padding: 12px;
+    border: 2px solid #7597de;
+    border-radius: 14px;
+    outline: none;
+    color: #2b1055;
+  }
+  #askBox button {
+    margin-top: 16px;
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg,#ff5f6d,#ffc371);
+    transition: transform .15s;
+  }
+  #askBox button:active { transform: scale(.96); }
+  #askMsg { margin-top: 12px; font-size: 15px; color: #d6336c; min-height: 20px; }
+
+  /* Финальная открытка */
+  #card {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .8s;
+    background: rgba(20, 10, 40, 0.55);
+    backdrop-filter: blur(4px);
+  }
+  #card.show { opacity: 1; pointer-events: auto; }
+  .card-inner {
+    background: linear-gradient(160deg, #fff8f0, #ffe8f0);
+    color: #3a1055;
+    padding: 40px 32px;
+    border-radius: 28px;
+    max-width: 460px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    transform: translateY(30px) scale(.9);
+    transition: transform .6s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+  #card.show .card-inner { transform: translateY(0) scale(1); }
+  .card-inner h1 {
+    font-size: 30px;
+    background: linear-gradient(135deg,#ff5f6d,#ffc371,#7597de);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 18px;
+  }
+  .card-inner p { font-size: 17px; line-height: 1.6; margin-bottom: 12px; }
+  .card-inner .heart { font-size: 34px; margin-top: 10px; }
+
+  /* Всплывающие поздравления */
+  .toast {
+    position: fixed;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 30px;
+    background: linear-gradient(135deg,#ff5f6d,#ffc371);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    pointer-events: none;
+    z-index: 15;
+    animation: floatUp 1.4s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(.6); }
+    20% { opacity: 1; transform: translate(-50%, -20px) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -140px) scale(.95); }
+  }
+</style>
+</head>
+<body>
+
+<div id="counter">Поймано: 0 / 100</div>
+<div id="hint">Поймай и нажми на тортик 100 раз! 🎯</div>
+
+<div id="cake">🎂</div>
+
+<div id="askBox">
+  <h2>Сколько тебе исполняется? 🎈</h2>
+  <input id="ageInput" type="number" inputmode="numeric" placeholder="?">
+  <button id="ageBtn">Ответить</button>
+  <div id="askMsg"></div>
+</div>
+
+<div id="card">
+  <div class="card-inner">
+    <h1>С Днём Рождения, Сонечка!! 🎉</h1>
+    <p>В тебе есть невероятное упорство, молодцом💪</p>
+    <p>Желаю тебе моря конфетти каждый день, тортиков без поводов и людей рядом, которые всегда поддержат твои идеи. ТЫ мегакрутая, Сонька.</p>
+    <p>Пусть каждый год будет ярче предыдущего. Ты классная самая!! Проведи этот денек по максимуму и с улыбкой(все остальные тоже хд) ✨</p>
+    <div class="heart">💖🎂🎈</div>
+  </div>
+</div>
+
+<script>
+/* ================== НАСТРОЙКИ ================== */
+const TOTAL_CLICKS = 100;   // сколько раз надо нажать
+const ESCAPE_LIMIT = 19;    // до скольких попыток тортик убегает
+const CORRECT_AGE = 20;     // правильный ответ на вопрос
+
+const congratulations = [
+  "СОНЯ МОЩЬ!! 🎉", "МОЛОДЦОМ!! 💖", "СОСАТЬ АМЕРИКА! ✨", "ПОЧТИ!! 🤗",
+  "ЖЕЛАЮ СЧАСТЬЯ! 🌈", "ЖЕЛАЮ ЗДОРОВЬЯ! ⭐", "СОНЯ ПОКУШАЙ ТОРТ ХОРОШЕНЬКО! 🔥", "СОНЯ КОГДА НА ШАШЛЫКИ! 👏",
+  "ТЫ ПРИКОЛЬНАЯ)))))! 🌸", "БДЫЩ БДЫЩ! 🥂", "КРАСОТКА! 💃", "УЛЫБАЙСЯ ЧАЩЕ! 😊",
+  "ЕЩЕ НЕМНОГО! 🍰", "ТЫ ЛУЧШАЯ! 💫", "СИГМА! 🚀", "СИКСЕВЕН! 💪",
+  "ЖЕЛАЮ МНОГО ДЕНЕГ! 🍬", "ЕЕЕЕСЕСЕСЕС! 🦄", "ДАВА	ЙЙЙ! ✨", "ТЫ ТАЩИШЬ! ❤️", "СОНЯ МОЧИ ЕГО", "УРАРАРАРРАРАРА"
+];
+
+/* ================== СОСТОЯНИЕ ================== */
+const cake = document.getElementById('cake');
+const counterEl = document.getElementById('counter');
+const hintEl = document.getElementById('hint');
+const askBox = document.getElementById('askBox');
+const askMsg = document.getElementById('askMsg');
+const ageInput = document.getElementById('ageInput');
+const ageBtn = document.getElementById('ageBtn');
+const card = document.getElementById('card');
+
+let escapeCount = 0;        // сколько раз тортик уже убежал
+let escapedFinal = false;   // финальный побег после ввода 20
+let clickingPhase = false;  // включён ли этап кликов
+let clicks = 0;
+let questionShown = false;
+
+/* ================== КОНФЕТТИ ================== */
+function boomConfetti() {
+  confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+}
+// стартовое конфетти
+window.addEventListener('load', () => {
+  confetti({ particleCount: 150, spread: 100, origin: { y: 0.3 } });
+  setTimeout(() => confetti({ particleCount: 100, spread: 120, origin: { y: 0.2 } }), 400);
+});
+
+/* ================== ПОБЕГ ОТ КУРСОРА ================== */
+function moveCakeRandom() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const pad = 90;
+  const x = pad + Math.random() * (w - pad * 2);
+  const y = pad + Math.random() * (h - pad * 2);
+  cake.style.left = x + 'px';
+  cake.style.top = y + 'px';
+}
+
+cake.addEventListener('mouseenter', () => {
+  // Пока не начался этап кликов — тортик убегает
+  if (!clickingPhase && !questionShown && escapeCount < ESCAPE_LIMIT) {
+    escapeCount++;
+    moveCakeRandom();
+    // лёгкое конфетти при каждом побеге
+    confetti({ particleCount: 20, spread: 50, origin: { x: event.clientX / innerWidth, y: event.clientY / innerHeight } });
+    // на 19-м побеге — задаём вопрос
+    if (escapeCount >= ESCAPE_LIMIT) {
+      questionShown = true;
+      setTimeout(() => {
+        askBox.classList.add('show');
+        ageInput.focus();
+        hintEl.textContent = "Ответь на вопрос, чтобы продолжить 😉";
+      }, 350);
+    }
+  }
+});
+
+/* ================== ВОПРОС ПРО ВОЗРАСТ ================== */
+ageBtn.addEventListener('click', checkAge);
+ageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAge(); });
+
+function checkAge() {
+  const val = parseInt(ageInput.value, 10);
+  if (isNaN(val)) { askMsg.textContent = "Введи число 🙂"; return; }
+
+  if (val === CORRECT_AGE) {
+    askBox.classList.remove('show');
+    askMsg.textContent = "";
+    askInputReset();
+    // финальный побег
+    if (!escapedFinal) {
+      escapedFinal = true;
+      escapeCount++;
+      moveCakeRandom();
+      cake.classList.add('grow');
+      setTimeout(() => cake.classList.remove('grow'), 400);
+      boomConfetti();
+      // показываем текст «фух, это был двадцатый»
+      hintEl.textContent = "Фух... это был двадцатый! 🎯";
+      setTimeout(() => {
+        hintEl.textContent = "Теперь лови и жми 100 раз! 💥";
+        clickingPhase = true;
+        // фиксируем тортик по центру и разрешаем клики
+        cake.style.left = '50%';
+        cake.style.top = '55%';
+        cake.style.transition = 'left .5s cubic-bezier(.34,1.56,.64,1), top .5s cubic-bezier(.34,1.56,.64,1)';
+        cake.style.transform = 'translate(-50%, -50%)';
+        cake.classList.add('frozen');
+      }, 1400);
+    }
+  } else {
+    askMsg.textContent = "Хм, попробуй ещё раз 😄 (подсказка: не то число)";
+    askInputReset();
+  }
+}
+function askInputReset() { ageInput.value = ""; ageInput.focus(); }
+
+/* ================== КЛИКИ ================== */
+cake.addEventListener('click', (e) => {
+  // Клики учитываются только после "это был двадцатый"
+  if (!clickingPhase || clicks >= TOTAL_CLICKS) return;
+
+  clicks++;
+  counterEl.textContent = `Поймано: ${clicks} / ${TOTAL_CLICKS}`;
+  counterEl.classList.add('pop');
+  setTimeout(() => counterEl.classList.remove('pop'), 150);
+
+  // конфетти в точке клика
+  confetti({
+    particleCount: 40,
+    spread: 70,
+    origin: { x: e.clientX / innerWidth, y: e.clientY / innerHeight }
+  });
+
+  // всплывающее поздравление
+  showToast(congratulations[Math.floor(Math.random() * congratulations.length)], e.clientX, e.clientY);
+
+  if (clicks >= TOTAL_CLICKS) {
+    finishGame();
+  }
+});
+
+function showToast(text, x, y) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  t.style.left = x + 'px';
+  t.style.top = y + 'px';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 1400);
+}
+
+/* ================== ФИНАЛ ================== */
+function finishGame() {
+  clickingPhase = false;
+  cake.classList.add('explode');
+
+  // мощный салют
+  setTimeout(() => { cake.style.display = 'none'; }, 600);
+  let duration = 3000;
+  let end = Date.now() + duration;
+  (function frame() {
+    confetti({ particleCount: 6, angle: 60, spread: 55, origin: { x: 0 } });
+    confetti({ particleCount: 6, angle: 120, spread: 55, origin: { x: 1 } });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
+
+  boomConfetti();
+  setTimeout(boomConfetti, 500);
+  setTimeout(boomConfetti, 1000);
+
+  hintEl.textContent = "💥 БУМ! С Днём Рождения!!!";
+
+  // открытка
+  setTimeout(() => card.classList.add('show'), 1400);
+}
+</script>
+</body>
+</html>
